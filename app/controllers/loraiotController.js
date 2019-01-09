@@ -1,16 +1,40 @@
 const mongoose = require("mongoose");
-
 const Sensor = mongoose.model("sensors");
 
-module.exports = app => {
-  app.post("/api/iot/receiver", (req, res) => {
+exports.list = async (req, res, next) => {
+  try {
+    Sensor.find()
+      .sort({ Time: 1 })
+      .limit(200)
+      .exec(function(err, data) {
+        if (err) {
+          const result = {
+            error: true,
+            error_msg: err.message
+          };
+          return res.status(500).json(result);
+        }
+        return res.json(data);
+      });
+  } catch (err) {
+    console.log(err);
+    const result = {
+      error: true,
+      error_msg: err.message
+    };
+    return res.status(500).json(result);
+  }
+};
+
+exports.store = async (req, res, next) => {
+  try {
     const data = req.body.DevEUI_uplink;
 
     if (!data) {
-      return res.send("No DATA");
+      return res.send("0");
     }
 
-    new Sensor({
+    const result = await new Sensor({
       Time: data.Time,
       DevEUI: data.DevEUI,
       DevAddr: data.DevAddr,
@@ -38,10 +62,15 @@ module.exports = app => {
       ModelCfg: data.ModelCfg,
       InstantPER: data.InstantPER,
       MeanPER: data.MeanPER
-    })
-      .save()
-      .then(() => {
-        return res.send("IoT Received..");
-      });
-  });
+    }).save();
+
+    return res.send("1");
+  } catch (err) {
+    console.log(err);
+    const result = {
+      error: true,
+      error_msg: err.message
+    };
+    return res.status(500).json(result);
+  }
 };
